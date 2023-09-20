@@ -16,9 +16,14 @@ import (
 // submitting data whenever a trigger event occurs. Under these circumstances, verifying the authenticity of a cookie
 // without sending it to a secured endpoint becomes challenging.
 func IsCookieValid(cookie string, requestCount int) bool {
-	requestThreshold, ok := extractValueByIndex(cookie, 1)
-	if !ok {
+	parts := strings.Split(cookie, "~")
+	if len(parts) < 2 {
 		return false
+	}
+
+	requestThreshold, err := strconv.Atoi(parts[1])
+	if err != nil {
+		requestThreshold = -1
 	}
 
 	return requestThreshold != -1 && requestCount >= requestThreshold
@@ -30,12 +35,17 @@ func IsCookieValid(cookie string, requestCount int) bool {
 // This function returns if such an invalidated cookie is present, if it is present you should be able to make the
 // cookie valid again with only 1 sensor post.
 func IsCookieInvalidated(cookie string) bool {
-	third, ok := extractValueByIndex(cookie, 3)
-	if !ok {
+	parts := strings.Split(cookie, "~")
+	if len(parts) < 4 {
 		return false
 	}
 
-	return third > -1
+	signal, err := strconv.Atoi(parts[3])
+	if err != nil {
+		signal = -1
+	}
+
+	return signal > -1
 }
 
 // extractValueByIndex extracts an integer from an _abck cookie, it functions as a replacement for strings.Split calls
@@ -48,6 +58,7 @@ func extractValueByIndex(cookie string, position int) (int, bool) {
 			return -1, false
 		}
 		start++
+		cookie = cookie[start:]
 	}
 
 	end := strings.Index(cookie[start:], "~")
